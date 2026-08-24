@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="description" content="押すたびに、どうでもいいのに妙に具体的な指令が出るサイト。" />
+  <title>妙に具体的な今日の指令</title>
+  <style>
+    :root {
+      --bg: #f4f0e8;
+      --ink: #111;
+      --paper: #fffdf8;
+      --accent: #ff4d00;
+      --shadow: 8px 8px 0 #111;
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    html { color-scheme: light; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-rounded, "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 10%, rgba(255,77,0,.17), transparent 25rem),
+        radial-gradient(circle at 90% 85%, rgba(50,95,255,.15), transparent 28rem),
+        var(--bg);
+      overflow-x: hidden;
+    }
+    button, input { font: inherit; }
+    .noise {
+      position: fixed; inset: 0; pointer-events: none; opacity: .08; z-index: 20;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+    }
+    main { width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 70px; }
+    .topline { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:26px; font-size:13px; font-weight:800; letter-spacing:.08em; }
+    .badge { border:2px solid var(--ink); border-radius:999px; padding:8px 12px; background:var(--paper); box-shadow:3px 3px 0 var(--ink); }
+    h1 { font-size:clamp(42px, 8vw, 88px); line-height:.93; letter-spacing:-.06em; margin:0 0 22px; max-width:850px; }
+    .lead { font-size:clamp(17px, 2.2vw, 23px); line-height:1.7; max-width:690px; margin:0 0 34px; }
+    .machine { display:grid; grid-template-columns: 1.55fr .75fr; gap:24px; align-items:stretch; }
+    .card { border:3px solid var(--ink); border-radius:var(--radius); background:var(--paper); box-shadow:var(--shadow); }
+    .result { min-height:390px; padding:30px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; }
+    .result::after { content:""; position:absolute; width:160px; height:160px; border:18px solid var(--accent); border-radius:50%; right:-70px; top:-80px; opacity:.85; }
+    .eyebrow { font-weight:900; font-size:13px; letter-spacing:.14em; }
+    #mission { position:relative; z-index:2; font-size:clamp(30px, 4.4vw, 54px); line-height:1.22; letter-spacing:-.04em; margin:24px 0; font-weight:900; }
+    #reason { font-size:15px; line-height:1.65; margin:0; opacity:.72; max-width:590px; }
+    .panel { padding:24px; display:flex; flex-direction:column; gap:20px; }
+    .meter-label { display:flex; justify-content:space-between; font-size:13px; font-weight:900; }
+    input[type="range"] { width:100%; accent-color:var(--accent); }
+    .press {
+      min-height:160px; border:3px solid var(--ink); border-radius:18px; background:var(--accent); color:#fff;
+      font-weight:950; font-size:25px; cursor:pointer; box-shadow:6px 6px 0 var(--ink); transition:transform .08s, box-shadow .08s, filter .2s;
+      padding:22px; line-height:1.25;
+    }
+    .press:hover { filter:brightness(1.04); }
+    .press:active { transform:translate(5px,5px); box-shadow:1px 1px 0 var(--ink); }
+    .tiny { font-size:12px; line-height:1.6; opacity:.68; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:24px; }
+    .stat { padding:18px; text-align:center; }
+    .stat b { display:block; font-size:30px; line-height:1; margin-bottom:7px; }
+    .stat span { font-size:12px; font-weight:800; }
+    .history { margin-top:42px; }
+    .history h2 { font-size:22px; margin:0 0 16px; }
+    #history { display:grid; gap:10px; }
+    .history-item { padding:15px 17px; border:2px solid var(--ink); border-radius:14px; background:rgba(255,253,248,.8); font-weight:750; }
+    .history-item small { display:block; margin-top:4px; opacity:.55; font-weight:600; }
+    .foot { margin-top:34px; font-size:12px; opacity:.62; line-height:1.7; }
+    .particle { position:fixed; pointer-events:none; z-index:30; font-size:24px; animation:fly .85s cubic-bezier(.16,.76,.4,1) forwards; }
+    @keyframes fly { to { transform:translate(var(--dx), var(--dy)) rotate(var(--r)); opacity:0; } }
+    @keyframes wiggle { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-.45deg)} 75%{transform:rotate(.45deg)} }
+    .reality-bending .card { animation:wiggle .28s linear 2; }
+    .reality-bending { --bg:#eaf7ff; --accent:#6b2cff; }
+    @media (max-width:760px) {
+      main { padding-top:24px; }
+      .machine { grid-template-columns:1fr; }
+      .result { min-height:340px; }
+      .stats { grid-template-columns:1fr 1fr 1fr; }
+      .stat { padding:14px 8px; }
+      .stat b { font-size:24px; }
+      .topline { align-items:flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:.001ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <main>
+    <div class="topline">
+      <span class="badge">ODDLY SPECIFIC / v1.0</span>
+      <span>役に立つ保証：0%</span>
+    </div>
+
+    <h1>妙に具体的な<br>今日の指令</h1>
+    <p class="lead">人生を変えるほどではない。でも、今日を昨日と少しだけ違う日にする。そんな「どうでもいい指令」を1つだけ出します。</p>
+
+    <section class="machine" aria-label="指令生成機">
+      <article class="card result" aria-live="polite">
+        <div>
+          <div class="eyebrow" id="levelName">LEVEL 2 / ちょっと変</div>
+          <div id="mission">冷蔵庫を開けて、最初に目が合った食材に「今日は君じゃない」と言う。</div>
+        </div>
+        <p id="reason">目的はありません。目的がないことが目的です。</p>
+      </article>
+
+      <aside class="card panel">
+        <div>
+          <div class="meter-label"><span>奇妙さ</span><span id="levelValue">2 / 5</span></div>
+          <input id="level" type="range" min="1" max="5" value="2" aria-label="奇妙さレベル" />
+        </div>
+        <button class="press" id="press" type="button">今日の指令を<br>ください</button>
+        <div class="tiny">スペースキーでも抽選できます。5回に1回くらい、画面側も少しおかしくなります。</div>
+      </aside>
+    </section>
+
+    <section class="stats" aria-label="統計">
+      <div class="card stat"><b id="count">0</b><span>押した回数</span></div>
+      <div class="card stat"><b id="score">0</b><span>人生の余白</span></div>
+      <div class="card stat"><b id="rank">正常</b><span>現在の状態</span></div>
+    </section>
+
+    <section class="history">
+      <h2>最近の指令</h2>
+      <div id="history"><div class="history-item">まだ履歴はありません。<small>まず1回押してください。</small></div></div>
+    </section>
+
+    <p class="foot">このサイトはブラウザ内だけで動作します。指令の実行は任意です。危険、迷惑、違法になり得る行動は指令に含めていません。</p>
+  </main>
+
+<script>
+const missions = {
+  1: [
+    ["いつもと違うコップで水を飲む。", "違いは小さくて十分です。"],
+    ["机の上から、いちばん長く放置している物を1つだけ片づける。", "2つ片づけると趣旨が変わります。1つだけです。"],
+    ["帰り道で、普段より1本だけ違う道を通る。", "迷子になるほど変えないでください。"],
+    ["今日いちばんどうでもよかった出来事を10秒だけ思い出す。", "重大事件ばかり記憶する脳への小さな反抗です。"],
+    ["30秒だけ窓の外を見て、動いているものを3つ探す。", "生産性は一旦、席を外しています。"]
+  ],
+  2: [
+    ["冷蔵庫を開けて、最初に目が合った食材に「今日は君じゃない」と言う。", "目的はありません。目的がないことが目的です。"],
+    ["エレベーターの閉ボタンを押さず、完全に機械へ委ねる。", "数秒の主導権を手放します。"],
+    ["コンビニで普段見ない棚を7秒だけ観察する。何も買わなくてよい。", "市場調査ではありません。"],
+    ["靴を履くとき、いつもと逆の足から履く。", "人生の分岐は、たぶんここではありません。"],
+    ["スマホの電卓で、自分の年齢×37を計算して忘れる。", "答えを覚える必要は一切ありません。"]
+  ],
+  3: [
+    ["自販機を1台見つけ、売上トップを勝手に予想する。答え合わせは禁止。", "不確実性をそのまま保存します。"],
+    ["家の中で『いちばん会社っぽい物』を1つ決める。", "会議は開催しなくて構いません。"],
+    ["今日見た数字の中から『なんとなく強そうな数字』を1つ選ぶ。", "根拠は提出不要です。"],
+    ["ティッシュを1枚取り出し、できるだけ上品に二つ折りにする。", "上品の定義はあなたに委ねられています。"],
+    ["部屋の中にある物へ、勝手に観光名所の名前をつける。", "例：充電ケーブルの谷。"]
+  ],
+  4: [
+    ["家にある物を3つ選び、勝手に『社長・部長・新人』へ配役する。", "人事評価までは不要です。"],
+    ["目の前の物体を1つ選び、通販番組の司会者として15秒だけ褒める。", "価格は自由に設定してください。"],
+    ["時計を見て、現在時刻をニュース速報風に心の中で読み上げる。", "現場からは以上です。"],
+    ["部屋の一角を『立入禁止区域』と決め、3分だけ近づかない。", "3分後、自動的に規制解除です。"],
+    ["自分の今日の行動に、映画のタイトルっぽい名前をつける。", "続編は未定で構いません。"]
+  ],
+  5: [
+    ["スプーンか箸を1本だけ選び、今夜のMVPとして表彰する。", "授賞理由を一言添えると完成度が上がります。"],
+    ["部屋の中で最も『裏切りそうな家具』を決め、理由を考える。", "家具への直接尋問は不要です。"],
+    ["明日の自分に向けて『例の件、頼んだ』とだけメモする。明日、意味を考える。", "過去の自分からの雑な業務依頼です。"],
+    ["家の中を5歩だけ、ドキュメンタリー番組の主人公のつもりで移動する。", "ナレーションは脳内でお願いします。"],
+    ["今から60秒間だけ、自分を『臨時館長』だと思って部屋を巡回する。", "展示物には触れても構いません。たぶん自分の物なので。"]
+  ]
+};
+
+const levelNames = ["", "ほぼ正常", "ちょっと変", "かなり妙", "だいぶ妙", "現実が薄い"];
+const rankNames = ["正常", "微妙", "妙", "珍妙", "逸材", "館長", "概念"];
+const level = document.getElementById('level');
+const levelValue = document.getElementById('levelValue');
+const levelName = document.getElementById('levelName');
+const mission = document.getElementById('mission');
+const reason = document.getElementById('reason');
+const press = document.getElementById('press');
+const countEl = document.getElementById('count');
+const scoreEl = document.getElementById('score');
+const rankEl = document.getElementById('rank');
+const historyEl = document.getElementById('history');
+
+let state = JSON.parse(localStorage.getItem('oddlySpecificState') || '{"count":0,"score":0,"history":[]}');
+let lastMission = '';
+
+function renderStats(){
+  countEl.textContent = state.count;
+  scoreEl.textContent = state.score;
+  const i = Math.min(rankNames.length - 1, Math.floor(state.count / 5));
+  rankEl.textContent = rankNames[i];
+  if (!state.history.length) return;
+  historyEl.innerHTML = state.history.slice(0,5).map(item =>
+    `<div class="history-item">${escapeHTML(item.text)}<small>奇妙さ ${item.level} / 5</small></div>`
+  ).join('');
+}
+
+function escapeHTML(str){
+  return str.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+
+function updateLevel(){
+  const v = Number(level.value);
+  levelValue.textContent = `${v} / 5`;
+  levelName.textContent = `LEVEL ${v} / ${levelNames[v]}`;
+}
+
+function burst(){
+  const rect = press.getBoundingClientRect();
+  const chars = ['?','!','・','※','↗','◎'];
+  for(let i=0;i<10;i++){
+    const p = document.createElement('span');
+    p.className = 'particle';
+    p.textContent = chars[Math.floor(Math.random()*chars.length)];
+    p.style.left = `${rect.left + rect.width/2}px`;
+    p.style.top = `${rect.top + rect.height/2}px`;
+    p.style.setProperty('--dx', `${(Math.random()-.5)*260}px`);
+    p.style.setProperty('--dy', `${-40-Math.random()*180}px`);
+    p.style.setProperty('--r', `${(Math.random()-.5)*520}deg`);
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),900);
+  }
+}
+
+function generate(){
+  const v = Number(level.value);
+  const pool = missions[v];
+  let pick = pool[Math.floor(Math.random()*pool.length)];
+  if(pool.length > 1){
+    while(pick[0] === lastMission) pick = pool[Math.floor(Math.random()*pool.length)];
+  }
+  lastMission = pick[0];
+  mission.textContent = pick[0];
+  reason.textContent = pick[1];
+  state.count += 1;
+  state.score += v * (1 + Math.floor(Math.random()*3));
+  state.history.unshift({text:pick[0], level:v});
+  state.history = state.history.slice(0,5);
+  localStorage.setItem('oddlySpecificState', JSON.stringify(state));
+  renderStats();
+  burst();
+  if(state.count % 5 === 0){
+    document.body.classList.add('reality-bending');
+    setTimeout(()=>document.body.classList.remove('reality-bending'),700);
+  }
+}
+
+level.addEventListener('input', updateLevel);
+press.addEventListener('click', generate);
+window.addEventListener('keydown', e => {
+  if(e.code === 'Space' && e.target.tagName !== 'INPUT'){
+    e.preventDefault(); generate();
+  }
+});
+updateLevel();
+renderStats();
+</script>
+</body>
+</html>
