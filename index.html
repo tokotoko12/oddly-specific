@@ -61,7 +61,29 @@
     .stat b { display:block; font-size:30px; line-height:1; margin-bottom:7px; }
     .stat span { font-size:12px; font-weight:800; }
     .history { margin-top:42px; }
-    .history h2 { font-size:22px; margin:0 0 16px; }
+    .history-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+    .history h2 { font-size:22px; margin:0; }
+    .reset-button, .dialog-button {
+      min-height:44px; padding:10px 14px; border:2px solid var(--ink); border-radius:12px;
+      background:var(--paper); color:var(--ink); font-weight:850; cursor:pointer; box-shadow:3px 3px 0 var(--ink);
+    }
+    .reset-button:hover, .dialog-button:hover { filter:brightness(.97); }
+    .reset-dialog {
+      width:min(460px, calc(100% - 32px)); padding:26px; border:3px solid var(--ink);
+      border-radius:22px; background:var(--paper); color:var(--ink); box-shadow:var(--shadow);
+    }
+    .reset-dialog::backdrop { background:rgba(17,17,17,.58); }
+    .reset-dialog h2 { margin:0 0 12px; font-size:25px; line-height:1.25; }
+    .reset-dialog p { margin:0; line-height:1.7; }
+    .reset-dialog .reset-error { margin-top:12px; color:#a52800; font-weight:800; }
+    .reset-dialog .reset-error:empty { display:none; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap; margin-top:24px; }
+    .dialog-button--danger { background:var(--accent); color:#fff; }
+    button:focus-visible, input:focus-visible { outline:3px solid #3264ff; outline-offset:4px; }
+    .sr-only {
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+      clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
     #history { display:grid; gap:10px; }
     .history-item { padding:15px 17px; border:2px solid var(--ink); border-radius:14px; background:rgba(255,253,248,.8); font-weight:750; }
     .history-item small { display:block; margin-top:4px; opacity:.55; font-weight:600; }
@@ -121,13 +143,27 @@
       <div class="card stat"><b id="rank">正常</b><span>現在の状態</span></div>
     </section>
 
-    <section class="history">
-      <h2>最近の指令</h2>
+    <section class="history" aria-labelledby="historyTitle">
+      <div class="history-heading">
+        <h2 id="historyTitle">最近の指令</h2>
+        <button class="reset-button" id="resetButton" type="button" aria-haspopup="dialog" aria-controls="resetDialog">保存データを初期化</button>
+      </div>
       <div id="history"><div class="history-item">まだ履歴はありません。<small>まず1回押してください。</small></div></div>
     </section>
+    <p id="resetStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 
     <p class="foot">このサイトはブラウザ内だけで動作します。指令の実行は任意です。危険、迷惑、違法になり得る行動は指令に含めていません。</p>
   </main>
+
+<dialog id="resetDialog" class="reset-dialog" aria-labelledby="resetDialogTitle" aria-describedby="resetDialogDescription">
+  <h2 id="resetDialogTitle">保存データを初期化しますか？</h2>
+  <p id="resetDialogDescription">利用回数、スコア、最近の指令の履歴をすべて削除します。この操作は取り消せません。</p>
+  <p id="resetError" class="reset-error" role="alert" aria-live="assertive"></p>
+  <div class="dialog-actions">
+    <button class="dialog-button" id="cancelReset" type="button" autofocus>キャンセル</button>
+    <button class="dialog-button dialog-button--danger" id="confirmReset" type="button">削除して初期化</button>
+  </div>
+</dialog>
 
 <script>
 const missions = {
@@ -180,8 +216,15 @@ const countEl = document.getElementById('count');
 const scoreEl = document.getElementById('score');
 const rankEl = document.getElementById('rank');
 const historyEl = document.getElementById('history');
+const resetButton = document.getElementById('resetButton');
+const resetDialog = document.getElementById('resetDialog');
+const cancelReset = document.getElementById('cancelReset');
+const confirmReset = document.getElementById('confirmReset');
+const resetError = document.getElementById('resetError');
+const resetStatus = document.getElementById('resetStatus');
+const STORAGE_KEY = 'oddlySpecificState';
 
-let state = JSON.parse(localStorage.getItem('oddlySpecificState') || '{"count":0,"score":0,"history":[]}');
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"count":0,"score":0,"history":[]}');
 let lastMission = '';
 
 function renderStats(){
@@ -189,7 +232,10 @@ function renderStats(){
   scoreEl.textContent = state.score;
   const i = Math.min(rankNames.length - 1, Math.floor(state.count / 5));
   rankEl.textContent = rankNames[i];
-  if (!state.history.length) return;
+  if (!state.history.length) {
+    historyEl.innerHTML = '<div class="history-item">まだ履歴はありません。<small>まず1回押してください。</small></div>';
+    return;
+  }
   historyEl.innerHTML = state.history.slice(0,5).map(item =>
     `<div class="history-item">${escapeHTML(item.text)}<small>奇妙さ ${item.level} / 5</small></div>`
   ).join('');
@@ -203,6 +249,27 @@ function updateLevel(){
   const v = Number(level.value);
   levelValue.textContent = `${v} / 5`;
   levelName.textContent = `LEVEL ${v} / ${levelNames[v]}`;
+}
+
+function openResetDialog(){
+  resetError.textContent = '';
+  resetStatus.textContent = '';
+  resetDialog.showModal();
+}
+
+function resetSavedData(){
+  resetError.textContent = '';
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    resetError.textContent = '保存データを削除できませんでした。ブラウザの保存設定を確認して、もう一度お試しください。';
+    return;
+  }
+  state = {count:0, score:0, history:[]};
+  lastMission = '';
+  renderStats();
+  resetDialog.close();
+  resetStatus.textContent = '利用回数、スコア、指令履歴を初期化しました。';
 }
 
 function burst(){
@@ -236,7 +303,7 @@ function generate(){
   state.score += v * (1 + Math.floor(Math.random()*3));
   state.history.unshift({text:pick[0], level:v});
   state.history = state.history.slice(0,5);
-  localStorage.setItem('oddlySpecificState', JSON.stringify(state));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   renderStats();
   burst();
   if(state.count % 5 === 0){
@@ -247,8 +314,20 @@ function generate(){
 
 level.addEventListener('input', updateLevel);
 press.addEventListener('click', generate);
+resetButton.addEventListener('click', openResetDialog);
+cancelReset.addEventListener('click', () => resetDialog.close());
+confirmReset.addEventListener('click', resetSavedData);
+window.addEventListener('storage', e => {
+  if (e.key !== STORAGE_KEY || e.newValue !== null) return;
+  state = {count:0, score:0, history:[]};
+  lastMission = '';
+  renderStats();
+  resetStatus.textContent = '別のタブで保存データが初期化されました。';
+});
 window.addEventListener('keydown', e => {
-  if(e.code === 'Space' && e.target.tagName !== 'INPUT'){
+  const target = e.target;
+  const isControl = target instanceof Element && target.closest('button, input, select, textarea, a, dialog, [contenteditable="true"]');
+  if(e.code === 'Space' && !isControl && !resetDialog.open){
     e.preventDefault(); generate();
   }
 });
